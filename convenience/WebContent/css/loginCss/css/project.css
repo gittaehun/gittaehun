@@ -1,0 +1,18 @@
+@CHARSET "EUC-KR";
+.login-block {
+    float:left;
+    margin:0 49px 25px 0;
+    text-align:center;
+    width:260px;
+}
+ 
+.login-block form {
+    -moz-border-radius:15px 15px 15px 15px;
+    -moz-box-shadow:0 0 10px #333333;
+    border:3px solid white;
+    padding:20px;
+}
+ 
+.login-block .active-form {
+    border-color:#d09e6d;
+}

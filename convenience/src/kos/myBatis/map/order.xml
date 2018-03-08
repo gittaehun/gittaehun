@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="OrderMapper">
+	<select id="getAirList" parameterType="map" resultType="map">
+      SELECT DISTINCT
+            kp.air_no, ka.air_license, ka.air_name, ka.air_address, ka.air_hp, ka.air_bank, ka.air_bankaccount
+           , ka.air_accountholder, kp.air_startingpoint, kp.air_destination, kp.air_hit, kp.air_writedate
+           , TO_CHAR(kp.air_price,'999,999,999') air_price, kp.air_time, kp.air_pname, kp.air_content
+           , NVL(REGEXP_SUBSTR(kp.air_startingpoint_time,'[^/]+',1,1),1)AS start_date
+           , NVL(REGEXP_SUBSTR(kp.air_destination_time,'[^/]+',1,1),1)AS end_date
+           , NVL(REGEXP_SUBSTR(kp.air_startingpoint_time,'[^/]+',1,2),1)AS start_time
+           , NVL(REGEXP_SUBSTR(kp.air_destination_time,'[^/]+',1,2),1)AS end_time 
+           , NVL((SELECT im_name FROM kos_air_images WHERE  im_step=0 AND air_no=kp.air_no),'no') img1
+           , NVL((SELECT im_name FROM kos_air_images WHERE  im_step=1 AND air_no=kp.air_no),'no') img2
+              , NVL((SELECT im_name FROM kos_air_images WHERE im_step=2 AND air_no=kp.air_no),'no') img3
+           , kp.user_id
+      FROM kos_air ka, kos_air_product kp, kos_air_images ki
+      WHERE ka.air_name = kp.air_name
+        <if test="air_no > 0">
+     	   AND kp.air_no = #{air_no}
+        </if>
+	</select>
+	<select id="getAirNo" resultType="int">
+		select air_no
+		FROM kos_air_product
+		WHERE rownum=1
+		order by air_no desc
+	</select>
+	<insert id="airInsert" parameterType="map">
+		INSERT INTO kos_air_product(
+					air_no
+				   ,air_name
+                   ,air_startingpoint
+                   ,air_destination
+                   ,air_startingpoint_time
+                   ,air_destination_time
+                   ,air_price
+                   ,air_writedate
+                   ,air_time
+                   ,air_content
+                   ,air_pname
+                   ,air_quantity
+                   ,user_id)
+		VALUES (SEQ_AIR_NO.nextval,#{air_name},#{air_startingpoint},#{air_destination},#{air_startingpoint_time},#{air_destination_time}
+		,#{air_price},TO_CHAR(sysdate,'YYYY-MM-DD'),#{air_time},#{air_content},#{air_pname},#{air_quantity},#{user_id})
+	</insert>
+	<insert id="airImgInsert" parameterType="map">
+	<!-- 	INSERT INTO kos_images(im_no, im_sep,im_step, im_name,bd_no)
+		VALUES(seq_im_no.nextval, 1, (SELECT NVL(
+	    (SELECT max(im_step)
+	     FROM kos_images
+	     WHERE bd_no = #{air_no}
+	     AND im_step>0),0)+1 im_step From dual),#{image},#{air_no}) -->
+	  INSERT INTO kos_air_images(im_no, im_step, im_name, air_no)
+      VALUES(SEQ_AIR_IMG_NO.nextval, #{im_step}, #{im_name}, #{air_no})
+	</insert>
+	<delete id="airImgDelete" parameterType="int">
+		DELETE FROM kos_air_images
+		WHERE air_no = #{air_no}
+	</delete>
+	<delete id="airDelete" parameterType="int">
+		DELETE FROM kos_air_product
+		WHERE air_no = #{air_no}
+	</delete>
+	<select id="getCarList" parameterType="map" resultType="map">
+		SELECT rent_kind, rent_price
+		FROM kos_rent_product
+	</select>
+	<select id="getRentList" parameterType="map" resultType="map">
+	SELECT rent_no, rent_license, rent_name, rent_address       
+	      ,rent_hp, rent_bank, rent_bankaccount, rent_accountholder 
+	      ,rent_kind, rent_price
+	FROM kos_rent, kos_rent_product
+	WHERE rent_kind = #{rent_kind}
+	</select>
+	<insert id="carOrder" parameterType="map">
+	INSERT INTO kos_rent_product_sub
+	    (rent_pno, rent_take, rent_return,rent_reserved_name 
+	    ,rent_tprice, rent_tel1, rent_tel2, rent_driver_age    
+	    ,rent_request, user_id,rent_no,rent_kind)
+	    VALUES((SELECT replace('R' || to_char(sysdate,'yyyymmdd') || 
+	    to_char((SELECT NVL(substr(max(rent_pno),10,4),0)+1 from kos_rent_product_sub),'0009'),' ','') 
+	    from dual)
+	    , #{rent_take}, #{rent_return},#{rent_reserved_name}
+		,#{rent_tprice}, #{rent_tel1}, #{rent_tel2}, #{rent_driver_age}    
+		,#{rent_request}, #{user_id}, #{rent_no}, #{rent_kind})
+	</insert>
+	<select id="getCarOrderNo" parameterType="map" resultType="string">
+		SELECT rent_pno
+		FROM kos_rent_product_sub
+		WHERE rownum = 1
+		ORDER BY rent_pno desc
+	</select>
+	<select id="getCarOrder" parameterType="map" resultType="map">
+		SELECT rent_pno, rent_take, rent_return, rent_name, rent_request
+    	,TO_CHAR(rent_tprice,'999,999,999') rent_tprice, rent_kind
+    	FROM kos_rent_product_sub,kos_rent
+    	WHERE rent_pno = #{rent_pno}
+	</select>
+	<insert id="airOrder" parameterType="map">
+		INSERT INTO kos_air_product_sub
+		         (air_pno, air_tprice, air_kname        
+    			 ,air_ename, air_birth, air_email        
+    			 ,air_contact, air_request, user_id, air_no)   
+	    VALUES((SELECT replace('A' || to_char(sysdate,'yyyymmdd') || 
+	    to_char((SELECT NVL(substr(max(air_pno),10,4),0)+1 from kos_air_product_sub),'0009'),' ','') 
+	    from dual)
+              , #{air_tprice}, #{air_kname}, #{air_ename}        
+    		  , #{air_birth}, #{air_email} ,#{air_contact}
+    		  , #{air_request}, #{user_id},#{air_no})    
+	</insert>
+	<select id="getAirOrder" parameterType="map" resultType="map"> 
+     SELECT air_pno, air_tprice, air_kname , air_email, air_birth               
+              ,air_ename, air_contact, air_request, ps.user_id
+              ,ps.air_no, air_startingpoint, air_destination, air_startingpoint_time
+              ,air_destination_time, to_char(air_price,'999,999,999') air_price, air_time, air_quantity, air_name
+        FROM kos_air_product_sub ps, kos_air_product p
+        WHERE ps.user_id = #{user_id}
+           AND ps.air_no = p.air_no
+ 	    <if test="air_pno != null">
+	   	   AND air_pno = #{air_pno}
+	    </if>
+ 	    <if test="user_id != null">
+	   	   AND ps.user_id = #{user_id}
+	    </if>
+	</select>
+	<select id="getAirOrderNo" parameterType="map" resultType="string">
+		SELECT air_pno
+		FROM kos_air_product_sub
+		WHERE rownum = 1 AND user_id = #{user_id}
+		ORDER BY air_pno desc
+	</select>
+	<select id="orderList" parameterType="string" resultType="map">
+        SELECT
+              aps.air_pno, rps.rent_pno , hr.hotel_rno
+              ,ap.air_pname, rps.rent_kind, hp.hotel_name
+              ,aps.user_id
+        FROM kos_air_product ap
+              ,kos_air_product_sub aps
+              ,kos_rent_product_sub rps
+              ,kos_hotel_reserve hr
+              ,kos_hotel_product hp
+        WHERE aps.user_id = rps.user_id and aps.user_id=hr.user_id
+        AND hr.user_id = #{value}
+	</select>
+	<select id="getRentOrder" parameterType="map" resultType="map">
+		SELECT rent_pno, rent_take, rent_return, rent_name, rent_request
+    	,TO_CHAR(rent_tprice,'999,999,999') rent_tprice, rent_kind
+    	FROM kos_rent_product_sub, kos_rent
+    	WHERE rent_pno = #{rent_pno}
+    	AND kos_rent_product_sub.user_id = #{user_id}
+	</select>
+	<delete id="airOrderDelete" parameterType="int">
+		DELETE FROM kos_air_product_sub
+		WHERE air_no=#{value}
+	</delete>
+	<select id="getHotelList" parameterType = "int" resultType="map">
+	    SELECT
+         hotel.hotel_pno, max(hotel.hotel_name) hotel_name, max(hotel.hotel_address) hotel_address, max(hotel.hotel_checkin_date) hotel_sdate, max(hotel.hotel_checkout_date) hotel_edate
+         , max(hotel.hotel_accommodation) hotel_peoplenum, max(hotel.hotel_item_quantity) hotel_productnum, max(TO_CHAR(hotel.hotel_price,'999,999,999')) hotel_price,max(hotel.hotel_product_details) hotel_content, max(hotel.user_id) user_id,max(hotel.hotel_hit) hotel_hit
+          , max(image.im_no) im_no, max(image.im_step) im_step,
+         max(NVL((SELECT im_name FROM kos_hotel_images where hotel_pno=hotel.hotel_pno and im_step=1),'no')) img1,
+         max(NVL((SELECT im_name FROM kos_hotel_images where hotel_pno=hotel.hotel_pno and im_step=2),'no')) img2,
+         max(NVL((SELECT im_name FROM kos_hotel_images where hotel_pno=hotel.hotel_pno and im_step=3),'no')) img3             
+        FROM kos_hotel_product hotel, kos_hotel_images image
+        where hotel.hotel_pno = image.hotel_pno
+         <if test="value > 0">
+           AND hotel.hotel_pno = #{value}
+          </if>   
+        group by hotel.hotel_pno  
+	</select>
+	<insert id="hotelInsert">
+		INSERT INTO kos_hotel_product(hotel_pno, hotel_name, hotel_address, hotel_checkin_date, hotel_checkout_date
+                            , hotel_accommodation, hotel_item_quantity, hotel_price, hotel_product_details, user_id)
+        VALUES (seq_hotel_product_no.nextval, #{hotel_name}, #{hotel_address}, #{hotel_sdate}, #{hotel_edate}
+        		, #{hotel_peopleNum}, #{hotel_productNum}, #{hotel_price}, #{hotel_content}, #{user_id})
+	</insert>
+	<select id="getHotelNo" parameterType = "map" resultType="int">
+		SELECT max(hotel_pno) hotel_pno
+        FROM kos_hotel_product
+	</select>
+	<insert id="imgInsert">
+		INSERT INTO kos_hotel_images(im_no, im_step, im_name, hotel_pno)
+		VALUES(seq_hotel_img_no.nextval, #{im_step}, #{im_name}, #{hotel_no})
+	</insert>
+	<update id="hotelStepUpdate" parameterType="map">
+		UPDATE kos_hotel_imges
+    	SET im_step = im_step+1
+		WHERE hotel_pno = #{hotel_pno}
+   		AND im_step>#{im_step}
+	</update>
+	<select id="hotelIDCheck" parameterType="string" resultType="string">
+		SELECT NVL(
+        (SELECT hotel.user_id
+        FROM kos_hotel hotel
+        WHERE hotel.user_id = #{value}),'fail') user_id
+    	FROM kos_hotel
+	</select> 
+	<insert id="reservationIns" parameterType="map">
+		INSERT INTO kos_hotel_reserve(hotel_rno, hotel_rname, hotel_rhp1, hotel_rhp2, hotel_remail, hotel_tprice, hotel_pno, user_id)
+		VALUES ((SELECT replace('H' || to_char(sysdate,'yyyymmdd') || 
+	    to_char((SELECT NVL(substr(max(hotel_rno),10,4),0)+1 from kos_hotel_reserve),'0009'),' ','') 
+	    from dual)
+		, #{hotel_rname}, #{hotel_rhp1}, #{hotel_rhp2}, #{hotel_remail}, #{hotel_tprice}, #{hotel_pno}, #{user_id})
+	</insert>
+	<select id="reserveList" parameterType="int" resultType="map">
+		SELECT khp.hotel_name hotel_name, khp.hotel_checkin_date hotel_sdate, khp.hotel_checkout_date hotel_edate
+			, khr.hotel_tprice total_price, khr.hotel_rname hotel_rname, khr.hotel_remail hotel_remail, khr.hotel_rhp1 hotel_rhp1
+			, khr.hotel_rhp2 hotel_rhp2, khp.hotel_address hotel_address 
+		 FROM KOS_HOTEL_PRODUCT khp, KOS_HOTEL_RESERVE khr
+		where rownum =1
+		  and khp.hotel_pno=#{value}
+		ORDER BY HOTEL_RNO DESC
+	</select>
+	<select id="getHotelOrder" parameterType="string" resultType="map">
+		SELECT khp.hotel_name hotel_name, khp.hotel_checkin_date hotel_sdate, khp.hotel_checkout_date hotel_edate
+			, khr.hotel_tprice total_price, khr.hotel_rname hotel_rname, khr.hotel_remail hotel_remail, khr.hotel_rhp1 hotel_rhp1
+			, khr.hotel_rhp2 hotel_rhp2, khp.hotel_address hotel_address 
+		 FROM KOS_HOTEL_PRODUCT khp, KOS_HOTEL_RESERVE khr
+		where rownum =1
+		  and khr.hotel_rno=#{value}
+		ORDER BY HOTEL_RNO DESC
+	</select>
+</mapper>

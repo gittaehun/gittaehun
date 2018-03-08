@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="MemberMapper">
+	<insert id="memInsert" parameterType="kos.vo.MemberVO">
+		INSERT INTO kos_user(user_id, user_pw, user_nick, user_name, user_address, user_gender, user_hp, user_grade)
+		VALUES(#{id}, #{pass}, #{nick}, #{name}, #{address}, #{gender}, #{mobile}, '일반')
+	</insert>
+	<select id="memCheck" parameterType="java.lang.String" resultType="java.lang.String">
+		SELECT user_id, user_pw, user_nick, user_name, user_address, user_gender, user_hp, user_grade
+		FROM kos_user
+		WHERE user_id=#{id}
+	</select>
+	<select id="memLogin" parameterType="java.util.Map" resultType="java.util.Map">
+		SELECT user_id, user_pw, user_nick, user_name, user_address, user_gender, user_hp, user_grade
+		FROM kos_user
+		WHERE user_id=#{mem_id}
+		AND   user_pw=#{mem_pw}
+	</select>
+	<update id="memUpdate" parameterType="java.util.Map">
+		UPDATE kos_user
+		SET user_pw=#{n_pw}
+		   ,user_nick=#{n_nick}
+		   ,user_name=#{n_name}
+		   ,user_address=#{n_address}
+		   ,user_gender=#{n_gender}
+		   ,user_hp=#{n_hp}
+		WHERE user_id=#{n_id}
+	</update>
+</mapper>

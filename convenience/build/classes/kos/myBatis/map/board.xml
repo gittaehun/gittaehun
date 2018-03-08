@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="BoardMapper">
+	<select id="getBoardList" resultType="map">
+		SELECT board_no, board_title, board_contents, board_date, board_pw, board_hit, user_id, b_group, b_step
+		FROM kos_mainboard
+		WHERE b_step = 0
+		order by board_no desc
+	</select>
+	<select id="getCommentList" parameterType="map" resultType="map">
+		SELECT board_no, board_title, board_contents, board_date, board_pw, board_hit, user_id, b_group, b_step
+		FROM kos_mainboard
+		WHERE b_step > 0
+		AND b_group = #{b_group}
+		ORDER BY b_step
+	</select>
+	<select id="boardView" resultType="map" parameterType="int">
+		SELECT board_no, board_title, board_contents, board_date, board_pw, board_hit, user_id, b_group, b_step
+		FROM kos_mainboard
+		WHERE board_no=#{value}		
+	</select>
+	<insert id="boardIns" parameterType="map">
+      INSERT INTO kos_mainboard
+             (board_no, board_category, board_title, board_contents, board_date, board_pw,b_group,b_step, user_id,board_hit)
+      VALUES (seq_main_board_no.nextval, '0' , #{board_title}, #{board_contents}, TO_CHAR(sysdate, 'YYYY-MM-DD HH:MI:SS')
+            , #{board_pw},#{b_group}, #{b_step}, #{user_id}, 0)
+    </insert>
+     <update id="stepUpdate" parameterType="map">
+		UPDATE kos_mainboard
+    	SET b_step = b_step+1
+		WHERE b_group = #{b_group}
+   		AND b_step>#{b_step}
+	</update>
+	<select id="getBgroup" parameterType="string" resultType="int">
+		  SELECT NVL(
+             (SELECT /*+index_desc(kos_mainboard k_group) */ b_group
+             FROM kos_mainboard
+             WHERE rownum = 1
+                 AND b_group>0), 0)+1 b_group From dual
+	</select>
+	<select id="getPassword" parameterType="map" resultType="string">
+	    SELECT NVL(  
+          (SELECT board_pw
+          FROM kos_mainboard
+          WHERE board_no = #{b_no}
+              AND board_pw = #{board_pw}),'null'
+        )board_pw FROM dual
+	</select>
+	<delete id="commentDelete" parameterType="int">
+		DELETE FROM kos_mainboard
+		WHERE board_no=#{value}
+	</delete>
+	<delete id="boardDelete" parameterType="int">
+		DELETE FROM kos_mainboard
+		WHERE board_no=#{value}
+	</delete>
+	<update id="boardUpdate" parameterType="map">
+		UPDATE kos_mainboard
+		SET board_title = #{board_title},
+			board_contents= #{board_contents}
+		WHERE board_no = #{b_no}	
+	</update>
+</mapper>
